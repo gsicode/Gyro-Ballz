@@ -477,23 +477,27 @@
     function spawnFireworks() {
       const centerX = w / 2;
       const centerY = h / 2;
-      const burst = 26;
+      const burst = 48;
+      
       for (let i = 0; i < burst; i++) {
-        const angle = (Math.PI * 2 * i) / burst;
-        const speed = randomBetween(90, 260);
+        const angle = (Math.PI * 2 * i) / burst + (Math.random() - 0.5) * 0.3;
+        const speed = randomBetween(120, 340);
+        const colors = ['#ffff00', '#ff6b6b', '#4ecdc4', '#95e1d3', '#f38181', '#aa96da', '#fcbad3', '#ffffd2'];
+        
         fireworks.push({
           x: centerX,
           y: centerY,
           dx: Math.cos(angle) * speed,
           dy: Math.sin(angle) * speed,
-          life: randomBetween(0.8, 1.4),
+          life: randomBetween(1.2, 2.0),
           age: 0,
-          size: randomBetween(2, 5),
-          color: ['#fff', '#f9e79f', '#f5b7b1', '#7dd3fc', '#c4b5fd'][Math.floor(Math.random() * 5)]
+          size: randomBetween(3, 8),
+          color: colors[Math.floor(Math.random() * colors.length)]
         });
       }
-      playTone(540, 0.1, 'triangle', 0.04);
-      playTone(860, 0.12, 'sine', 0.04);
+      
+      playTone(540, 0.14, 'triangle', 0.05);
+      playTone(860, 0.16, 'sine', 0.05);
     }
 
     function tryCapture(ball) {
@@ -627,22 +631,20 @@
     }
 
     function updateFireworks(dt) {
-      if (!fireworks.length) return;
       for (let i = fireworks.length - 1; i >= 0; i--) {
         const f = fireworks[i];
         f.age += dt;
         f.x += f.dx * dt;
         f.y += f.dy * dt;
-        f.dy += 120 * dt;
-        f.life -= dt;
-        if (f.life <= 0) {
+        f.dy += 140 * dt;
+        if (f.age >= f.life) {
           fireworks.splice(i, 1);
         }
       }
     }
 
     function update(dt) {
-      if (!running || win) {
+      if (!running) {
         if (win) updateFireworks(dt);
         return;
       }
@@ -652,7 +654,7 @@
       }
 
       const secured = balls.filter(b => b.captured).length;
-      if (secured >= BALL_COUNT) {
+      if (secured >= BALL_COUNT && BALL_COUNT > 0) {
         win = true;
         running = false;
         spawnFireworks();
@@ -719,12 +721,14 @@
 
     function drawFireworks() {
       for (const f of fireworks) {
-        ctx.beginPath();
+        const alpha = Math.max(0, 1 - f.age / f.life);
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.9;
         ctx.fillStyle = f.color;
-        ctx.globalAlpha = Math.max(0, 1 - f.age / f.life);
+        ctx.beginPath();
         ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
     }
 
@@ -739,7 +743,9 @@
         drawBall(ball);
       }
 
-      drawFireworks();
+      if (fireworks.length > 0) {
+        drawFireworks();
+      }
     }
 
     function animate(ts) {
