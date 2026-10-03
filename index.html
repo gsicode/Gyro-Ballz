@@ -61,6 +61,14 @@
       background: transparent;
     }
 
+    #fireworksCanvas {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      width: 100vw;
+      height: 100vh;
+    }
+
     #hud {
       position: absolute;
       top: max(14px, env(safe-area-inset-top));
@@ -86,7 +94,7 @@
     .overlay {
       position: absolute;
       inset: 0;
-      z-index: 5;
+      z-index: 6;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -216,6 +224,15 @@
       margin: 0 0 18px;
       font-size: clamp(15px, 2vw, 20px);
     }
+
+    .timer {
+      margin: 10px 0 20px;
+      font-size: clamp(20px, 4vw, 32px);
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.08em;
+      color: #dfeaf8;
+    }
   </style>
 </head>
 <body>
@@ -223,6 +240,7 @@
     <div id="hud">0 / 5</div>
 
     <canvas id="canvas"></canvas>
+    <canvas id="fireworksCanvas"></canvas>
 
     <div id="startOverlay" class="overlay">
       <div class="panel">
@@ -282,6 +300,7 @@
       <div class="win-box">
         <h2>You Win!</h2>
         <p>All balls are in their dips.</p>
+        <div class="timer" id="timerDisplay">0.000s</div>
         <button id="restartButton">Play Again</button>
       </div>
     </div>
@@ -290,6 +309,8 @@
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const fireworksCanvas = document.getElementById('fireworksCanvas');
+    const fireworksCtx = fireworksCanvas.getContext('2d');
     const hud = document.getElementById('hud');
     const startOverlay = document.getElementById('startOverlay');
     const winOverlay = document.getElementById('winOverlay');
@@ -299,6 +320,7 @@
     const sizeValue = document.getElementById('sizeValue');
     const ballCountSelect = document.getElementById('ballCountSelect');
     const dipCountSelect = document.getElementById('dipCountSelect');
+    const timerDisplay = document.getElementById('timerDisplay');
 
     let BALL_COUNT = 5;
     let DIP_COUNT = 5;
@@ -316,6 +338,8 @@
     let win = false;
     let lastTs = 0;
     let audioCtx = null;
+    let gameStartTime = 0;
+    let winTime = 0;
 
     let dips = [];
     let balls = [];
@@ -337,6 +361,12 @@
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      fireworksCanvas.width = Math.floor(w * dpr);
+      fireworksCanvas.height = Math.floor(h * dpr);
+      fireworksCanvas.style.width = w + 'px';
+      fireworksCanvas.style.height = h + 'px';
+      fireworksCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     function updateSizeLabel() {
@@ -460,6 +490,8 @@
       win = false;
       winOverlay.classList.remove('visible');
       lastTs = 0;
+      gameStartTime = Date.now();
+      winTime = 0;
     }
 
     function releaseBall(ball) {
@@ -657,6 +689,8 @@
       if (secured >= BALL_COUNT && BALL_COUNT > 0) {
         win = true;
         running = false;
+        winTime = (Date.now() - gameStartTime) / 1000;
+        timerDisplay.textContent = winTime.toFixed(3) + 's';
         spawnFireworks();
         winOverlay.classList.add('visible');
         playTone(440, 0.18, 'triangle', 0.07);
@@ -720,15 +754,16 @@
     }
 
     function drawFireworks() {
+      fireworksCtx.clearRect(0, 0, w, h);
       for (const f of fireworks) {
         const alpha = Math.max(0, 1 - f.age / f.life);
-        ctx.save();
-        ctx.globalAlpha = alpha * 0.9;
-        ctx.fillStyle = f.color;
-        ctx.beginPath();
-        ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        fireworksCtx.save();
+        fireworksCtx.globalAlpha = alpha * 0.9;
+        fireworksCtx.fillStyle = f.color;
+        fireworksCtx.beginPath();
+        fireworksCtx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+        fireworksCtx.fill();
+        fireworksCtx.restore();
       }
     }
 
