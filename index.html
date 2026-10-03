@@ -69,7 +69,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 100px;
+      min-width: 110px;
       padding: 8px 14px;
       border-radius: 999px;
       border: 1px solid var(--panel-border);
@@ -77,7 +77,7 @@
       box-shadow: 0 10px 28px rgba(0,0,0,0.24);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       font-size: clamp(12px, 2vw, 16px);
       font-weight: 700;
       text-transform: uppercase;
@@ -96,7 +96,7 @@
     }
 
     .panel {
-      width: min(84vw, 500px);
+      width: min(88vw, 540px);
       padding: 28px 22px 20px;
       border-radius: 28px;
       background: rgba(15, 19, 25, 0.82);
@@ -113,15 +113,57 @@
     }
 
     p {
-      margin: 10px 0 16px;
+      margin: 10px 0 14px;
       color: var(--subtle);
       line-height: 1.5;
       font-size: clamp(14px, 2vw, 18px);
     }
 
-    .notice {
-      margin-top: 6px;
-      opacity: 0.85;
+    .rows {
+      display: grid;
+      gap: 14px;
+      margin: 16px 0 22px;
+      text-align: left;
+    }
+
+    .setting {
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.88);
+    }
+
+    .value {
+      font-weight: 800;
+      color: white;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #dfeaf8;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      background: rgba(12,16,20,0.9);
+      color: white;
+      padding: 10px 12px;
+      font-size: 16px;
     }
 
     button {
@@ -185,8 +227,53 @@
     <div id="startOverlay" class="overlay">
       <div class="panel">
         <h1>Gyro Ballz</h1>
-        <p>Use your phone gyroscope to tilt the table. Get all 5 silver balls into the random shallow dips.</p>
-        <p class="notice">Any dip works. A ball can be knocked loose by a hard tilt or another ball.</p>
+        <div class="rows">
+          <div class="setting">
+            <div class="label-row">
+              <span>Difficulty</span>
+              <span id="sizeValue" class="value">Normal</span>
+            </div>
+            <input id="sizeSlider" type="range" min="0.7" max="1.6" step="0.05" value="1.0" />
+          </div>
+
+          <div class="setting">
+            <div class="label-row">
+              <span>Balls</span>
+              <span class="value"><select id="ballCountSelect">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select></span>
+            </div>
+          </div>
+
+          <div class="setting">
+            <div class="label-row">
+              <span>Dips</span>
+              <span class="value"><select id="dipCountSelect">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select></span>
+            </div>
+          </div>
+        </div>
+
+        <p class="notice">Any dip works. One ball can only sit in each dip at a time.</p>
         <button id="startButton">Start Game</button>
       </div>
     </div>
@@ -194,7 +281,7 @@
     <div id="winOverlay" class="overlay">
       <div class="win-box">
         <h2>You Win!</h2>
-        <p>All 5 balls are in their dips.</p>
+        <p>All balls are in their dips.</p>
         <button id="restartButton">Play Again</button>
       </div>
     </div>
@@ -208,8 +295,14 @@
     const winOverlay = document.getElementById('winOverlay');
     const startButton = document.getElementById('startButton');
     const restartButton = document.getElementById('restartButton');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const sizeValue = document.getElementById('sizeValue');
+    const ballCountSelect = document.getElementById('ballCountSelect');
+    const dipCountSelect = document.getElementById('dipCountSelect');
 
-    const BALL_COUNT = 5;
+    let BALL_COUNT = 5;
+    let DIP_COUNT = 5;
+    let sizeScale = 1;
     const gravity = 420;
 
     let w = 0;
@@ -226,6 +319,7 @@
 
     let dips = [];
     let balls = [];
+    let fireworks = [];
 
     function clamp(value, min, max) {
       return Math.min(Math.max(value, min), max);
@@ -243,6 +337,14 @@
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function updateSizeLabel() {
+      const val = Number(sizeSlider.value);
+      if (val < 0.9) sizeValue.textContent = 'Small';
+      else if (val > 1.1) sizeValue.textContent = 'Large';
+      else sizeValue.textContent = 'Normal';
+      sizeScale = val;
     }
 
     function ensureAudio() {
@@ -281,24 +383,24 @@
     }
 
     function createDip(x, y, radius) {
-      return { x, y, radius, glow: 0 };
+      return { x, y, radius, glow: 0, occupiedBy: null };
     }
 
     function generateDips() {
       const safeMargin = 52;
-      const minDist = 120;
+      const minDist = 110;
       const result = [];
 
-      for (let i = 0; i < BALL_COUNT; i++) {
+      for (let i = 0; i < DIP_COUNT; i++) {
         let placed = false;
-        for (let tries = 0; tries < 2500; tries++) {
-          const radius = randomBetween(38, 54);
+        for (let tries = 0; tries < 3000; tries++) {
+          const radius = randomBetween(32, 52) * sizeScale;
           const x = randomBetween(safeMargin + radius, w - safeMargin - radius);
           const y = randomBetween(safeMargin + radius, h - safeMargin - radius);
 
           const overlaps = result.some(d => {
             const dist = Math.hypot(d.x - x, d.y - y);
-            return dist < Math.max(minDist, d.radius + radius + 10);
+            return dist < Math.max(minDist, d.radius + radius + 8);
           });
 
           if (!overlaps) {
@@ -309,11 +411,11 @@
         }
 
         if (!placed) {
-          const angle = (Math.PI * 2 * i) / BALL_COUNT;
-          const orbit = Math.min(w, h) * 0.26;
+          const angle = (Math.PI * 2 * i) / Math.max(DIP_COUNT, 1);
+          const orbit = Math.min(w, h) * 0.25;
           const x = w / 2 + Math.cos(angle) * orbit;
           const y = h / 2 + Math.sin(angle) * orbit * 0.8;
-          result.push(createDip(x, y, 48));
+          result.push(createDip(x, y, 46 * sizeScale));
         }
       }
 
@@ -323,19 +425,19 @@
     function generateBalls() {
       const cx = w * 0.5;
       const cy = h * 0.5;
-      const spread = Math.min(w, h) * 0.17;
-      const radius = 18;
+      const spread = Math.min(w, h) * 0.16;
+      const radius = 18 * sizeScale;
 
       return Array.from({ length: BALL_COUNT }, (_, i) => {
-        const angle = (Math.PI * 2 * i) / BALL_COUNT;
-        const x = cx + (Math.random() - 0.5) * spread * 1.8 + Math.cos(angle) * spread * 0.6;
-        const y = cy + (Math.random() - 0.5) * spread * 1.5 + Math.sin(angle) * spread * 0.6;
+        const angle = (Math.PI * 2 * i) / Math.max(BALL_COUNT, 1);
+        const x = cx + (Math.random() - 0.5) * spread * 1.6 + Math.cos(angle) * spread * 0.6;
+        const y = cy + (Math.random() - 0.5) * spread * 1.4 + Math.sin(angle) * spread * 0.6;
 
         return {
           x,
           y,
-          vx: randomBetween(-110, 110),
-          vy: randomBetween(-110, 110),
+          vx: randomBetween(-120, 120),
+          vy: randomBetween(-120, 120),
           radius,
           captured: false,
           capturedDip: null,
@@ -346,8 +448,14 @@
     }
 
     function resetGame() {
+      BALL_COUNT = Number(ballCountSelect.value);
+      DIP_COUNT = Number(dipCountSelect.value);
+      sizeScale = Number(sizeSlider.value);
+      updateSizeLabel();
+
       dips = generateDips();
       balls = generateBalls();
+      fireworks = [];
       setHud();
       win = false;
       winOverlay.classList.remove('visible');
@@ -357,10 +465,35 @@
     function releaseBall(ball) {
       if (ball.captured) {
         ball.captured = false;
+        if (ball.capturedDip) {
+          ball.capturedDip.occupiedBy = null;
+        }
         ball.capturedDip = null;
         ball.vx = (Math.random() - 0.5) * 80;
         ball.vy = (Math.random() - 0.5) * 80;
       }
+    }
+
+    function spawnFireworks() {
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const burst = 26;
+      for (let i = 0; i < burst; i++) {
+        const angle = (Math.PI * 2 * i) / burst;
+        const speed = randomBetween(90, 260);
+        fireworks.push({
+          x: centerX,
+          y: centerY,
+          dx: Math.cos(angle) * speed,
+          dy: Math.sin(angle) * speed,
+          life: randomBetween(0.8, 1.4),
+          age: 0,
+          size: randomBetween(2, 5),
+          color: ['#fff', '#f9e79f', '#f5b7b1', '#7dd3fc', '#c4b5fd'][Math.floor(Math.random() * 5)]
+        });
+      }
+      playTone(540, 0.1, 'triangle', 0.04);
+      playTone(860, 0.12, 'sine', 0.04);
     }
 
     function tryCapture(ball) {
@@ -369,6 +502,7 @@
       }
 
       const dip = dips.find(d => {
+        if (d.occupiedBy && d.occupiedBy !== ball) return false;
         const dx = ball.x - d.x;
         const dy = ball.y - d.y;
         const dist = Math.hypot(dx, dy);
@@ -380,9 +514,10 @@
       const speed = Math.hypot(ball.vx, ball.vy);
       const force = Math.abs(tiltX) + Math.abs(tiltY);
 
-      if (speed < 140 && force < 1.2) {
+      if (speed < 160 && force < 1.3) {
         ball.captured = true;
         ball.capturedDip = dip;
+        dip.occupiedBy = ball;
         ball.x = dip.x;
         ball.y = dip.y;
         ball.vx = 0;
@@ -402,7 +537,7 @@
         const force = Math.abs(tiltX) + Math.abs(tiltY);
         const speed = Math.hypot(ball.vx, ball.vy);
 
-        if (force > 1.6 || speed > 140 || dist > dip.radius * 0.82) {
+        if (force > 1.6 || speed > 160 || dist > dip.radius * 0.82) {
           releaseBall(ball);
         } else {
           ball.x += (dip.x - ball.x) * 0.16;
@@ -419,7 +554,6 @@
 
       ball.vx += gx;
       ball.vy += gy;
-
       ball.vx *= 0.994;
       ball.vy *= 0.994;
 
@@ -492,8 +626,26 @@
       tryCapture(ball);
     }
 
+    function updateFireworks(dt) {
+      if (!fireworks.length) return;
+      for (let i = fireworks.length - 1; i >= 0; i--) {
+        const f = fireworks[i];
+        f.age += dt;
+        f.x += f.dx * dt;
+        f.y += f.dy * dt;
+        f.dy += 120 * dt;
+        f.life -= dt;
+        if (f.life <= 0) {
+          fireworks.splice(i, 1);
+        }
+      }
+    }
+
     function update(dt) {
-      if (!running || win) return;
+      if (!running || win) {
+        if (win) updateFireworks(dt);
+        return;
+      }
 
       for (const ball of balls) {
         updatePhysics(ball, dt);
@@ -503,6 +655,7 @@
       if (secured >= BALL_COUNT) {
         win = true;
         running = false;
+        spawnFireworks();
         winOverlay.classList.add('visible');
         playTone(440, 0.18, 'triangle', 0.07);
         playTone(660, 0.16, 'sine', 0.06);
@@ -564,6 +717,17 @@
       }
     }
 
+    function drawFireworks() {
+      for (const f of fireworks) {
+        ctx.beginPath();
+        ctx.fillStyle = f.color;
+        ctx.globalAlpha = Math.max(0, 1 - f.age / f.life);
+        ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
     function render() {
       ctx.clearRect(0, 0, w, h);
 
@@ -574,6 +738,8 @@
       for (const ball of balls) {
         drawBall(ball);
       }
+
+      drawFireworks();
     }
 
     function animate(ts) {
@@ -632,10 +798,12 @@
 
     startButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', startGame);
+    sizeSlider.addEventListener('input', updateSizeLabel);
     window.addEventListener('resize', resize);
     window.addEventListener('pointermove', pointerTilt, { passive: true });
 
     resize();
+    updateSizeLabel();
     resetGame();
     requestAnimationFrame(animate);
   </script>
