@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Gyro Ballz</title>
+  <style>
+    :root {
+      --bg-1: #090d12;
+      --bg-2: #111827;
+      --panel: rgba(255,255,255,0.06);
+      --panel-border: rgba(255,255,255,0.12);
+      --silver-1: #f4f8ff;
+      --silver-2: #dfe7f1;
+      --silver-3: #a8b7c9;
+      --silver-4: #7a8798;
+      --dip: rgba(255,255,255,0.05);
+      --dip-ring: rgba(255,255,255,0.16);
+      --text: rgba(255,255,255,0.9);
+      --subtle: rgba(255,255,255,0.74);
+      --shadow: rgba(0,0,0,0.4);
+      --success: #d9f9e3;
+      --success-strong: #8ef0b2;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 20% 15%, rgba(255,255,255,0.08), transparent 20%),
+                  radial-gradient(circle at 80% 75%, rgba(255,255,255,0.05), transparent 20%),
+                  linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+    }
+
+    #hud {
+      position: absolute;
+      top: max(14px, env(safe-area-inset-top));
+      left: 14px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 100px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.24);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      letter-spacing: 0.1em;
+      font-size: clamp(12px, 2vw, 16px);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(5, 8, 12, 0.48);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .panel {
+      width: min(84vw, 500px);
+      padding: 28px 22px 20px;
+      border-radius: 28px;
+      background: rgba(15, 19, 25, 0.82);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.42);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 48px);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    p {
+      margin: 10px 0 16px;
+      color: var(--subtle);
+      line-height: 1.5;
+      font-size: clamp(14px, 2vw, 18px);
+    }
+
+    .notice {
+      margin-top: 6px;
+      opacity: 0.85;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 14px 24px;
+      color: #111827;
+      background: linear-gradient(180deg, #f3f7ff, #dce9ff);
+      box-shadow: 0 12px 26px rgba(255,255,255,0.18);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 800;
+      font-size: clamp(13px, 2vw, 18px);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 8px 18px rgba(255,255,255,0.1);
+    }
+
+    #winOverlay {
+      display: none;
+    }
+
+    #winOverlay.visible {
+      display: flex;
+    }
+
+    .win-box {
+      width: min(74vw, 420px);
+      padding: 28px 22px 20px;
+      border-radius: 28px;
+      background: rgba(15, 19, 25, 0.88);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 22px 54px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+
+    .win-box h2 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 5vw, 42px);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .win-box p {
+      margin: 0 0 18px;
+      font-size: clamp(15px, 2vw, 20px);
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="hud">0 / 5</div>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="startOverlay" class="overlay">
+      <div class="panel">
+        <h1>Gyro Ballz</h1>
+        <p>Use your phone gyroscope to tilt the table. Get all 5 silver balls into the random shallow dips.</p>
+        <p class="notice">Any dip works. A ball can be knocked loose by a hard tilt or another ball.</p>
+        <button id="startButton">Start Game</button>
+      </div>
+    </div>
+
+    <div id="winOverlay" class="overlay">
+      <div class="win-box">
+        <h2>You Win!</h2>
+        <p>All 5 balls are in their dips.</p>
+        <button id="restartButton">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const hud = document.getElementById('hud');
+    const startOverlay = document.getElementById('startOverlay');
+    const winOverlay = document.getElementById('winOverlay');
+    const startButton = document.getElementById('startButton');
+    const restartButton = document.getElementById('restartButton');
+
+    const BALL_COUNT = 5;
+    const gravity = 420; // tuned for arcade feel
+
+    let w = 0;
+    let h = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    let tiltX = 0;
+    let tiltY = 0;
+    let motionReady = false;
+    let running = false;
+    let win = false;
+    let lastTs = 0;
+    let audioCtx = null;
+
+    let dips = [];
+    let balls = [];
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function resize() {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, duration, type = 'sine', gainValue = 0.05) {
+      ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = gainValue;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      const stopAt = audioCtx.currentTime + duration;
+      gain.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+      osc.stop(stopAt);
+    }
+
+    function vibrate(ms) {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(ms);
+      }
+    }
+
+    function setHud() {
+      const secured = balls.filter(b => b.captured).length;
+      hud.textContent = secured + ' / ' + BALL_COUNT;
+    }
+
+    function createDip(x, y, radius) {
+      return { x, y, radius, glow: 0 };
+    }
+
+    function generateDips() {
+      const safeMargin = 52;
+      const minDist = 120;
+      const result = [];
+
+      for (let i = 0; i < BALL_COUNT; i++) {
+        let placed = false;
+        for (let tries = 0; tries < 2500; tries++) {
+          const radius = randomBetween(38, 54);
+          const x = randomBetween(safeMargin + radius, w - safeMargin - radius);
+          const y = randomBetween(safeMargin + radius, h - safeMargin - radius);
+
+          const overlaps = result.some(d => {
+            const dist = Math.hypot(d.x - x, d.y - y);
+            return dist < Math.max(minDist, d.radius + radius + 10);
+          });
+
+          if (!overlaps) {
+            result.push(createDip(x, y, radius));
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          const angle = (Math.PI * 2 * i) / BALL_COUNT;
+          const orbit = Math.min(w, h) * 0.26;
+          const x = w / 2 + Math.cos(angle) * orbit;
+          const y = h / 2 + Math.sin(angle) * orbit * 0.8;
+          result.push(createDip(x, y, 48));
+        }
+      }
+
+      return result;
+    }
+
+    function generateBalls() {
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+      const spread = Math.min(w, h) * 0.17;
+      const radius = 18;
+
+      return Array.from({ length: BALL_COUNT }, (_, i) => {
+        const angle = (Math.PI * 2 * i) / BALL_COUNT;
+        const x = cx + (Math.random() - 0.5) * spread * 1.8 + Math.cos(angle) * spread * 0.6;
+        const y = cy + (Math.random() - 0.5) * spread * 1.5 + Math.sin(angle) * spread * 0.6;
+
+        return {
+          x,
+          y,
+          vx: randomBetween(-110, 110),
+          vy: randomBetween(-110, 110),
+          radius,
+          captured: false,
+          capturedDip: null,
+          glow: 0,
+          color: i % 2 === 0 ? '#e7edf6' : '#c1ced9'
+        };
+      });
+    }
+
+    function resetGame() {
+      dips = generateDips();
+      balls = generateBalls();
+      setHud();
+      win = false;
+      winOverlay.classList.remove('visible');
+      lastTs = 0;
+    }
+
+    function releaseBall(ball) {
+      if (ball.captured) {
+        ball.captured = false;
+        ball.capturedDip = null;
+        ball.vx = (Math.random() - 0.5) * 80;
+        ball.vy = (Math.random() - 0.5) * 80;
+      }
+    }
+
+    function tryCapture(ball) {
+      if (ball.captured) {
+        return;
+      }
+
+      const dip = dips.find(d => {
+        const dx = ball.x - d.x;
+        const dy = ball.y - d.y;
+        const dist = Math.hypot(dx, dy);
+        return dist < d.radius * 0.75;
+      });
+
+      if (!dip) return;
+
+      const speed = Math.hypot(ball.vx, ball.vy);
+      const force = Math.abs(tiltX) + Math.abs(tiltY);
+
+      if (speed < 140 && force < 1.2) {
+        ball.captured = true;
+        ball.capturedDip = dip;
+        ball.x = dip.x;
+        ball.y = dip.y;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.glow = 1;
+        playTone(220, 0.12, 'triangle', 0.05);
+        playTone(400, 0.08, 'sine', 0.04);
+        vibrate(55);
+        setHud();
+      }
+    }
+
+    function updatePhysics(ball, dt) {
+      if (ball.captured && ball.capturedDip) {
+        const dip = ball.capturedDip;
+        const dist = Math.hypot(ball.x - dip.x, ball.y - dip.y);
+        const force = Math.abs(tiltX) + Math.abs(tiltY);
+        const speed = Math.hypot(ball.vx, ball.vy);
+
+        // shallow cups can still be disturbed by a hard tilt or another ball
+        if (force > 1.6 || speed > 140 || dist > dip.radius * 0.82) {
+          releaseBall(ball);
+        } else {
+          ball.x += (dip.x - ball.x) * 0.16;
+          ball.y += (dip.y - ball.y) * 0.16;
+          ball.vx *= 0.78;
+          ball.vy *= 0.78;
+          ball.glow *= 0.96;
+          return;
+        }
+      }
+
+      const gx = tiltX * gravity * dt;
+      const gy = tiltY * gravity * dt;
+
+      ball.vx += gx;
+      ball.vy += gy;
+
+      // mild rolling friction
+      ball.vx *= 0.994;
+      ball.vy *= 0.994;
+
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+
+      // walls
+      if (ball.x - ball.radius <= 0) {
+        ball.x = ball.radius;
+        ball.vx *= -0.7;
+      }
+      if (ball.x + ball.radius >= w) {
+        ball.x = w - ball.radius;
+        ball.vx *= -0.7;
+      }
+      if (ball.y - ball.radius <= 0) {
+        ball.y = ball.radius;
+        ball.vy *= -0.7;
+      }
+      if (ball.y + ball.radius >= h) {
+        ball.y = h - ball.radius;
+        ball.vy *= -0.7;
+      }
+
+      // ball-to-ball collisions
+      for (let i = 0; i < balls.length; i++) {
+        const other = balls[i];
+        if (other === ball) continue;
+
+        const dx = other.x - ball.x;
+        const dy = other.y - ball.y;
+        const distSq = dx * dx + dy * dy;
+        const minDist = ball.radius + other.radius + 2;
+
+        if (distSq > 0 && distSq < minDist * minDist) {
+          const dist = Math.sqrt(distSq) || 0.0001;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = (minDist - dist) * 0.5;
+
+          ball.x -= nx * overlap;
+          ball.y -= ny * overlap;
+          other.x += nx * overlap;
+          other.y += ny * overlap;
+
+          const rvx = other.vx - ball.vx;
+          const rvy = other.vy - ball.vy;
+          const velAlongNormal = rvx * nx + rvy * ny;
+
+          if (velAlongNormal < 0) {
+            const impulse = -velAlongNormal * 0.75;
+            ball.vx -= impulse * nx;
+            ball.vy -= impulse * ny;
+            other.vx += impulse * nx;
+            other.vy += impulse * ny;
+          }
+
+          if (ball.captured || other.captured) {
+            releaseBall(ball);
+            releaseBall(other);
+          }
+        }
+      }
+
+      ball.glow *= 0.97;
+      tryCapture(ball);
+    }
+
+    function update(dt) {
+      if (!running || win) return;
+
+      for (const ball of balls) {
+        updatePhysics(ball, dt);
+      }
+
+      const secured = balls.filter(b => b.captured).length;
+      if (secured >= BALL_COUNT) {
+        win = true;
+        running = false;
+        winOverlay.classList.add('visible');
+        playTone(440, 0.18, 'triangle', 0.07);
+        playTone(660, 0.16, 'sine', 0.06);
+        playTone(880, 0.18, 'triangle', 0.06);
+        vibrate([80, 30, 140]);
+      }
+    }
+
+    function drawDip(dip) {
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.arc(dip.x, dip.y, dip.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.arc(dip.x, dip.y, dip.radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.arc(dip.x + dip.radius * 0.18, dip.y - dip.radius * 0.12, dip.radius * 0.52, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawBall(ball) {
+      const grad = ctx.createRadialGradient(
+        ball.x - ball.radius * 0.48,
+        ball.y - ball.radius * 0.48,
+        ball.radius * 0.18,
+        ball.x,
+        ball.y,
+        ball.radius
+      );
+
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.20, '#edf4ff');
+      grad.addColorStop(0.42, ball.color);
+      grad.addColorStop(0.72, '#a3b2c0');
+      grad.addColorStop(1, '#75859a');
+
+      ctx.beginPath();
+      ctx.fillStyle = grad;
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.arc(ball.x - ball.radius * 0.28, ball.y - ball.radius * 0.28, ball.radius * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (ball.captured) {
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.78)';
+        ctx.arc(ball.x, ball.y, ball.radius + 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, w, h);
+
+      for (const dip of dips) {
+        drawDip(dip);
+      }
+
+      for (const ball of balls) {
+        drawBall(ball);
+      }
+    }
+
+    function animate(ts) {
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min((ts - lastTs) / 1000, 0.033);
+      lastTs = ts;
+
+      update(dt);
+      render();
+      requestAnimationFrame(animate);
+    }
+
+    function handleOrientation(event) {
+      if (typeof event.gamma === 'number' && typeof event.beta === 'number') {
+        tiltX = clamp(event.gamma / 28, -1.5, 1.5);
+        tiltY = clamp(event.beta / 28, -1.5, 1.5);
+      }
+    }
+
+    async function requestMotionPermission() {
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const response = await DeviceOrientationEvent.requestPermission();
+          if (response !== 'granted') {
+            return false;
+          }
+        }
+        motionReady = true;
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        return true;
+      } catch (err) {
+        console.warn('Motion permission failed:', err);
+        return false;
+      }
+    }
+
+    function pointerTilt(event) {
+      if (motionReady) return;
+      const x = (event.clientX / w) * 2 - 1;
+      const y = (event.clientY / h) * 2 - 1;
+      tiltX = clamp(x * 1.2, -1.5, 1.5);
+      tiltY = clamp(y * 1.2, -1.5, 1.5);
+    }
+
+    function startGame() {
+      ensureAudio();
+      if (!motionReady) {
+        requestMotionPermission();
+      }
+      resetGame();
+      running = true;
+      startOverlay.style.display = 'none';
+      winOverlay.classList.remove('visible');
+      setHud();
+    }
+
+    startButton.addEventListener('click', startGame);
+    restartButton.addEventListener('click', startGame);
+    window.addEventListener('resize', resize);
+    window.addEventListener('pointermove', pointerTilt, { passive: true });
+
+    resize();
+    resetGame();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
