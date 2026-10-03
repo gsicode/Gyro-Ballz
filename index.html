@@ -210,7 +210,7 @@
     const restartButton = document.getElementById('restartButton');
 
     const BALL_COUNT = 5;
-    const gravity = 420; // tuned for arcade feel
+    const gravity = 420;
 
     let w = 0;
     let h = 0;
@@ -402,7 +402,6 @@
         const force = Math.abs(tiltX) + Math.abs(tiltY);
         const speed = Math.hypot(ball.vx, ball.vy);
 
-        // shallow cups can still be disturbed by a hard tilt or another ball
         if (force > 1.6 || speed > 140 || dist > dip.radius * 0.82) {
           releaseBall(ball);
         } else {
@@ -421,32 +420,33 @@
       ball.vx += gx;
       ball.vy += gy;
 
-      // mild rolling friction
       ball.vx *= 0.994;
       ball.vy *= 0.994;
 
       ball.x += ball.vx * dt;
       ball.y += ball.vy * dt;
 
-      // walls
       if (ball.x - ball.radius <= 0) {
         ball.x = ball.radius;
         ball.vx *= -0.7;
+        vibrate(12);
       }
       if (ball.x + ball.radius >= w) {
         ball.x = w - ball.radius;
         ball.vx *= -0.7;
+        vibrate(12);
       }
       if (ball.y - ball.radius <= 0) {
         ball.y = ball.radius;
         ball.vy *= -0.7;
+        vibrate(12);
       }
       if (ball.y + ball.radius >= h) {
         ball.y = h - ball.radius;
         ball.vy *= -0.7;
+        vibrate(12);
       }
 
-      // ball-to-ball collisions
       for (let i = 0; i < balls.length; i++) {
         const other = balls[i];
         if (other === ball) continue;
@@ -482,6 +482,8 @@
           if (ball.captured || other.captured) {
             releaseBall(ball);
             releaseBall(other);
+          } else {
+            vibrate(15);
           }
         }
       }
