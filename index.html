@@ -540,7 +540,7 @@
         const dx = ball.x - d.x;
         const dy = ball.y - d.y;
         const dist = Math.hypot(dx, dy);
-        return dist < d.radius * 0.75;
+        return dist < d.radius * 0.68;
       });
 
       if (!dip) return;
@@ -701,20 +701,22 @@
     }
 
     function drawDip(dip) {
+      const visualRadius = dip.radius * 0.84;
+
       ctx.beginPath();
       ctx.fillStyle = 'rgba(255,255,255,0.04)';
-      ctx.arc(dip.x, dip.y, dip.radius, 0, Math.PI * 2);
+      ctx.arc(dip.x, dip.y, visualRadius, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.beginPath();
       ctx.lineWidth = 2.2;
       ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.arc(dip.x, dip.y, dip.radius, 0, Math.PI * 2);
+      ctx.arc(dip.x, dip.y, visualRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.beginPath();
       ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      ctx.arc(dip.x + dip.radius * 0.18, dip.y - dip.radius * 0.12, dip.radius * 0.52, 0, Math.PI * 2);
+      ctx.arc(dip.x + visualRadius * 0.18, dip.y - visualRadius * 0.12, visualRadius * 0.52, 0, Math.PI * 2);
       ctx.fill();
     }
 
