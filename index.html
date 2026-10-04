@@ -803,8 +803,14 @@
     }
 
     async function requestMotionPermission() {
+      const hasMotionAPI = typeof DeviceOrientationEvent !== 'undefined';
+      if (!hasMotionAPI) {
+        motionReady = false;
+        return false;
+      }
+
       try {
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
           const response = await DeviceOrientationEvent.requestPermission();
           if (response !== 'granted') {
             return false;
