@@ -245,6 +245,26 @@
       letter-spacing: 0.08em;
       color: #dfeaf8;
     }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .select-row select {
+      width: 100%;
+    }
+
+    .select-label {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 4px;
+      display: block;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -272,37 +292,39 @@
 
           <div class="setting">
             <div class="label-row">
-              <span>Balls</span>
-              <span class="value"><select id="ballCountSelect">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5" selected>5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-              </select></span>
+              <span>Balls & Dips</span>
             </div>
-          </div>
-
-          <div class="setting">
-            <div class="label-row">
-              <span>Dips</span>
-              <span class="value"><select id="dipCountSelect">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5" selected>5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-              </select></span>
+            <div class="select-row">
+              <div>
+                <label class="select-label">Balls</label>
+                <select id="ballCountSelect">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5" selected>5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                </select>
+              </div>
+              <div>
+                <label class="select-label">Dips</label>
+                <select id="dipCountSelect">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5" selected>5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
