@@ -245,26 +245,6 @@
       letter-spacing: 0.08em;
       color: #dfeaf8;
     }
-
-    .select-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .select-row select {
-      width: 100%;
-    }
-
-    .select-label {
-      font-size: 12px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 4px;
-      display: block;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
@@ -293,39 +273,9 @@
           <div class="setting">
             <div class="label-row">
               <span>Balls & Dips</span>
+              <span id="countValue" class="value">5</span>
             </div>
-            <div class="select-row">
-              <div>
-                <label class="select-label">Balls</label>
-                <select id="ballCountSelect">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5" selected>5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                </select>
-              </div>
-              <div>
-                <label class="select-label">Dips</label>
-                <select id="dipCountSelect">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5" selected>5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                </select>
-              </div>
-            </div>
+            <input id="countSlider" type="range" min="5" max="10" step="1" value="5" />
           </div>
         </div>
 
@@ -358,8 +308,8 @@
     const restartButton = document.getElementById('restartButton');
     const sizeSlider = document.getElementById('sizeSlider');
     const sizeValue = document.getElementById('sizeValue');
-    const ballCountSelect = document.getElementById('ballCountSelect');
-    const dipCountSelect = document.getElementById('dipCountSelect');
+    const countSlider = document.getElementById('countSlider');
+    const countValue = document.getElementById('countValue');
     const timerDisplay = document.getElementById('timerDisplay');
 
     let BALL_COUNT = 5;
@@ -415,6 +365,11 @@
       else if (val > 1.1) sizeValue.textContent = 'Large';
       else sizeValue.textContent = 'Normal';
       sizeScale = val;
+    }
+
+    function updateCountLabel() {
+      const val = Number(countSlider.value);
+      countValue.textContent = val;
     }
 
     function ensureAudio() {
@@ -520,8 +475,9 @@
     }
 
     function resetGame() {
-      BALL_COUNT = Number(ballCountSelect.value);
-      DIP_COUNT = Number(dipCountSelect.value);
+      const count = Number(countSlider.value);
+      BALL_COUNT = count;
+      DIP_COUNT = count;
       sizeScale = Number(sizeSlider.value);
       updateSizeLabel();
 
@@ -884,11 +840,13 @@
     startButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', startGame);
     sizeSlider.addEventListener('input', updateSizeLabel);
+    countSlider.addEventListener('input', updateCountLabel);
     window.addEventListener('resize', resize);
     window.addEventListener('pointermove', pointerTilt, { passive: true });
 
     resize();
     updateSizeLabel();
+    updateCountLabel();
     resetGame();
     requestAnimationFrame(animate);
   </script>
