@@ -16,6 +16,3 @@ A full-screen mobile-friendly web game where you tilt your phone to move silver 
 
 - `index.html` — the complete game
 
-## Notes
-
-This repository is private. If you want to use GitHub Pages, make sure Pages is enabled for the repository in GitHub Settings if your account plan supports it for private repos.

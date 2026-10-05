@@ -64,7 +64,7 @@
     #fireworksCanvas {
       position: absolute;
       inset: 0;
-      z-index: 3;
+      z-index: 10;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
@@ -106,7 +106,7 @@
     .overlay {
       position: absolute;
       inset: 0;
-      z-index: 6;
+      z-index: 9;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -213,16 +213,29 @@
 
     #winOverlay.visible {
       display: flex;
+      align-items: flex-start;
+      overflow-y: auto;
+      padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
     }
 
     .win-box {
       width: min(74vw, 420px);
+      margin-block: auto;
+      flex-shrink: 0;
       padding: 28px 22px 20px;
       border-radius: 28px;
       background: rgba(15, 19, 25, 0.88);
       border: 1px solid rgba(255,255,255,0.14);
       box-shadow: 0 22px 54px rgba(0,0,0,0.45);
       text-align: center;
+    }
+
+    .win-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
     }
 
     .win-box h2 {
@@ -244,6 +257,84 @@
       font-family: 'Courier New', monospace;
       letter-spacing: 0.08em;
       color: #dfeaf8;
+    }
+
+    .leaderboard {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      text-align: left;
+    }
+
+    .leaderboard h3 {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .leaderboard-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .leaderboard-item {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      color: rgba(255,255,255,0.88);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    @keyframes recentPulse {
+      0% {
+        border-color: rgba(125, 211, 252, 0.85);
+        box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.14), 0 0 10px rgba(125, 211, 252, 0.2);
+      }
+      50% {
+        border-color: rgba(147, 197, 253, 1);
+        box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.24), 0 0 18px rgba(125, 211, 252, 0.46), 0 0 28px rgba(96, 165, 250, 0.24);
+      }
+      100% {
+        border-color: rgba(125, 211, 252, 0.9);
+        box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.18), 0 0 12px rgba(125, 211, 252, 0.3);
+      }
+    }
+
+    .leaderboard-item--recent {
+      border: 1px solid rgba(125, 211, 252, 0.95);
+      box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.18), 0 0 12px rgba(125, 211, 252, 0.24);
+      background: rgba(125, 211, 252, 0.06);
+      animation: recentPulse 1.6s ease-in-out infinite alternate;
+    }
+
+    .leaderboard-rank {
+      font-weight: 800;
+      opacity: 0.8;
+    }
+
+    .leaderboard-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .leaderboard-time {
+      font-weight: 700;
+      color: #dfeaf8;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.05em;
     }
   </style>
 </head>
@@ -280,16 +371,28 @@
         </div>
 
         <p class="notice">Any dip works. One ball can only sit in each dip at a time.</p>
-        <button id="startButton">Start Game</button>
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <button id="randomizeButton" type="button">Randomise</button>
+          <button id="startButton">Start game</button>
+        </div>
       </div>
     </div>
 
     <div id="winOverlay" class="overlay">
       <div class="win-box">
-        <h2>You Win!</h2>
+        <h2>You win!</h2>
         <p>All balls are in their dips.</p>
         <div class="timer" id="timerDisplay">0.000s</div>
-        <button id="restartButton">Play Again</button>
+
+        <div class="leaderboard">
+          <h3>Leaderboard</h3>
+          <ol id="leaderboardList" class="leaderboard-list"></ol>
+        </div>
+
+        <div class="win-actions">
+          <button id="restartButton">Play again</button>
+          <button id="menuButton" type="button">Main menu</button>
+        </div>
       </div>
     </div>
   </div>
@@ -305,12 +408,17 @@
     const startOverlay = document.getElementById('startOverlay');
     const winOverlay = document.getElementById('winOverlay');
     const startButton = document.getElementById('startButton');
+    const randomizeButton = document.getElementById('randomizeButton');
     const restartButton = document.getElementById('restartButton');
+    const menuButton = document.getElementById('menuButton');
     const sizeSlider = document.getElementById('sizeSlider');
     const sizeValue = document.getElementById('sizeValue');
     const countSlider = document.getElementById('countSlider');
     const countValue = document.getElementById('countValue');
     const timerDisplay = document.getElementById('timerDisplay');
+    const leaderboardList = document.getElementById('leaderboardList');
+
+    const LEADERBOARD_KEY = 'gyro-ballz-leaderboard-v1';
 
     let BALL_COUNT = 5;
     let DIP_COUNT = 5;
@@ -324,6 +432,10 @@
     let tiltX = 0;
     let tiltY = 0;
     let motionReady = false;
+    const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    let motionSupported = isMobileDevice && typeof window.DeviceOrientationEvent !== 'undefined';
+    let keyboardTiltX = 0;
+    let keyboardTiltY = 0;
     let running = false;
     let win = false;
     let lastTs = 0;
@@ -359,6 +471,14 @@
       fireworksCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
+    function getTableRect() {
+      const width = Math.min(w * 0.9, 980);
+      const height = Math.min(h * 0.76, 720);
+      const x = (w - width) / 2;
+      const y = (h - height) * 0.58;
+      return { x, y, width, height, right: x + width, bottom: y + height };
+    }
+
     function updateSizeLabel() {
       const val = Number(sizeSlider.value);
       if (val < 0.9) sizeValue.textContent = 'Small';
@@ -370,6 +490,16 @@
     function updateCountLabel() {
       const val = Number(countSlider.value);
       countValue.textContent = val;
+    }
+
+    function randomizeSettings() {
+      const randomBallCount = Math.floor(randomBetween(5, 11));
+      const randomSize = Number(randomBetween(0.7, 1.6).toFixed(2));
+
+      sizeSlider.value = String(randomSize);
+      countSlider.value = String(randomBallCount);
+      updateSizeLabel();
+      updateCountLabel();
     }
 
     function ensureAudio() {
@@ -409,11 +539,70 @@
       timerText.textContent = totalSeconds.toFixed(3) + 's';
     }
 
+    function getSizeLabel(value = Number(sizeSlider.value)) {
+      if (value < 0.9) return 'Small';
+      if (value > 1.1) return 'Large';
+      return 'Normal';
+    }
+
+    function getLeaderboard() {
+      try {
+        const raw = localStorage.getItem(LEADERBOARD_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function saveLeaderboardEntry(entry) {
+      const entries = getLeaderboard().map(item => ({ ...item, recent: false }));
+      const next = [...entries, { ...entry, recent: true }]
+        .sort((a, b) => a.time - b.time || b.balls - a.balls)
+        .slice(0, 5);
+
+      try {
+        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(next));
+      } catch (err) {
+        console.warn('Leaderboard save failed:', err);
+      }
+    }
+
+    function renderLeaderboard() {
+      const entries = getLeaderboard();
+      leaderboardList.innerHTML = '';
+
+      if (!entries.length) {
+        const empty = document.createElement('li');
+        empty.className = 'leaderboard-item';
+        empty.innerHTML = '<span class="leaderboard-rank">-</span><span class="leaderboard-meta"><span>No runs yet</span></span><span class="leaderboard-time">-</span>';
+        leaderboardList.appendChild(empty);
+        return;
+      }
+
+      entries.forEach((entry, index) => {
+        const item = document.createElement('li');
+        const isRecent = !!entry.recent;
+        item.className = 'leaderboard-item' + (isRecent ? ' leaderboard-item--recent' : '');
+        item.innerHTML = `
+          <span class="leaderboard-rank">${index + 1}</span>
+          <span class="leaderboard-meta">
+            <span>${entry.balls} balls</span>
+            <span>•</span>
+            <span>${entry.size}</span>
+          </span>
+          <span class="leaderboard-time">${entry.time.toFixed(3)}s</span>
+        `;
+        leaderboardList.appendChild(item);
+      });
+    }
+
     function createDip(x, y, radius) {
       return { x, y, radius, glow: 0, occupiedBy: null };
     }
 
     function generateDips() {
+      const table = getTableRect();
       const safeMargin = 52;
       const minDist = 110;
       const result = [];
@@ -422,8 +611,8 @@
         let placed = false;
         for (let tries = 0; tries < 3000; tries++) {
           const radius = randomBetween(32, 52) * sizeScale;
-          const x = randomBetween(safeMargin + radius, w - safeMargin - radius);
-          const y = randomBetween(safeMargin + radius, h - safeMargin - radius);
+          const x = randomBetween(table.x + safeMargin + radius, table.right - safeMargin - radius);
+          const y = randomBetween(table.y + safeMargin + radius, table.bottom - safeMargin - radius);
 
           const overlaps = result.some(d => {
             const dist = Math.hypot(d.x - x, d.y - y);
@@ -439,9 +628,10 @@
 
         if (!placed) {
           const angle = (Math.PI * 2 * i) / Math.max(DIP_COUNT, 1);
-          const orbit = Math.min(w, h) * 0.25;
-          const x = w / 2 + Math.cos(angle) * orbit;
-          const y = h / 2 + Math.sin(angle) * orbit * 0.8;
+          const orbitX = (table.width * 0.24);
+          const orbitY = (table.height * 0.2);
+          const x = table.x + table.width / 2 + Math.cos(angle) * orbitX;
+          const y = table.y + table.height / 2 + Math.sin(angle) * orbitY;
           result.push(createDip(x, y, 46 * sizeScale));
         }
       }
@@ -450,19 +640,19 @@
     }
 
     function generateBalls() {
-      const cx = w * 0.5;
-      const cy = h * 0.5;
-      const spread = Math.min(w, h) * 0.16;
+      const table = getTableRect();
+      const spreadX = table.width * 0.24;
+      const spreadY = table.height * 0.22;
       const radius = 18 * sizeScale;
 
       return Array.from({ length: BALL_COUNT }, (_, i) => {
         const angle = (Math.PI * 2 * i) / Math.max(BALL_COUNT, 1);
-        const x = cx + (Math.random() - 0.5) * spread * 1.6 + Math.cos(angle) * spread * 0.6;
-        const y = cy + (Math.random() - 0.5) * spread * 1.4 + Math.sin(angle) * spread * 0.6;
+        const x = table.x + table.width / 2 + (Math.random() - 0.5) * spreadX * 1.6 + Math.cos(angle) * spreadX * 0.6;
+        const y = table.y + table.height / 2 + (Math.random() - 0.5) * spreadY * 1.4 + Math.sin(angle) * spreadY * 0.6;
 
         return {
-          x,
-          y,
+          x: clamp(x, table.x + radius, table.right - radius),
+          y: clamp(y, table.y + radius, table.bottom - radius),
           vx: randomBetween(-120, 120),
           vy: randomBetween(-120, 120),
           radius,
@@ -565,6 +755,12 @@
     }
 
     function updatePhysics(ball, dt) {
+      const table = getTableRect();
+      const left = table.x + ball.radius;
+      const right = table.right - ball.radius;
+      const top = table.y + ball.radius;
+      const bottom = table.bottom - ball.radius;
+
       if (ball.captured && ball.capturedDip) {
         const dip = ball.capturedDip;
         const dist = Math.hypot(ball.x - dip.x, ball.y - dip.y);
@@ -594,23 +790,23 @@
       ball.x += ball.vx * dt;
       ball.y += ball.vy * dt;
 
-      if (ball.x - ball.radius <= 0) {
-        ball.x = ball.radius;
+      if (ball.x <= left) {
+        ball.x = left;
         ball.vx *= -0.7;
         vibrate(12);
       }
-      if (ball.x + ball.radius >= w) {
-        ball.x = w - ball.radius;
+      if (ball.x >= right) {
+        ball.x = right;
         ball.vx *= -0.7;
         vibrate(12);
       }
-      if (ball.y - ball.radius <= 0) {
-        ball.y = ball.radius;
+      if (ball.y <= top) {
+        ball.y = top;
         ball.vy *= -0.7;
         vibrate(12);
       }
-      if (ball.y + ball.radius >= h) {
-        ball.y = h - ball.radius;
+      if (ball.y >= bottom) {
+        ball.y = bottom;
         ball.vy *= -0.7;
         vibrate(12);
       }
@@ -686,6 +882,12 @@
           running = false;
           winTime = (Date.now() - gameStartTime) / 1000;
           timerDisplay.textContent = winTime.toFixed(3) + 's';
+          saveLeaderboardEntry({
+            time: winTime,
+            balls: BALL_COUNT,
+            size: getSizeLabel()
+          });
+          renderLeaderboard();
           updateHud();
           spawnFireworks();
           winOverlay.classList.add('visible');
@@ -700,11 +902,67 @@
       }
     }
 
+    function roundedRectPath(x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function drawTable() {
+      const table = getTableRect();
+      const radius = 28;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+      roundedRectPath(table.x + 14, table.y + table.height * 0.08, table.width, table.height, radius + 12);
+      ctx.fill();
+
+      const surface = ctx.createLinearGradient(0, table.y, 0, table.y + table.height);
+      surface.addColorStop(0, '#2f5d49');
+      surface.addColorStop(0.22, '#214d3b');
+      surface.addColorStop(0.52, '#183c2f');
+      surface.addColorStop(1, '#102d24');
+      ctx.fillStyle = surface;
+      roundedRectPath(table.x, table.y, table.width, table.height, radius);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+      ctx.lineWidth = 3;
+      roundedRectPath(table.x, table.y, table.width, table.height, radius);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      roundedRectPath(table.x + 18, table.y + 12, table.width - 36, table.height * 0.18, radius - 8);
+      ctx.fill();
+
+      const shine = ctx.createLinearGradient(table.x, table.y, table.x + table.width, table.y + table.height);
+      shine.addColorStop(0, 'rgba(255,255,255,0.22)');
+      shine.addColorStop(0.18, 'rgba(255,255,255,0.04)');
+      shine.addColorStop(0.5, 'rgba(255,255,255,0)');
+      shine.addColorStop(1, 'rgba(0,0,0,0.12)');
+      ctx.fillStyle = shine;
+      roundedRectPath(table.x, table.y, table.width, table.height, radius);
+      ctx.fill();
+    }
+
     function drawDip(dip) {
       const visualRadius = dip.radius * 0.84;
 
       ctx.beginPath();
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.ellipse(dip.x, dip.y + visualRadius * 0.78, visualRadius * 0.92, visualRadius * 0.36, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.arc(dip.x, dip.y, visualRadius, 0, Math.PI * 2);
       ctx.fill();
 
@@ -721,6 +979,11 @@
     }
 
     function drawBall(ball) {
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.ellipse(ball.x, ball.y + ball.radius * 1.2, ball.radius * 0.9, ball.radius * 0.36, 0, 0, Math.PI * 2);
+      ctx.fill();
+
       const grad = ctx.createRadialGradient(
         ball.x - ball.radius * 0.48,
         ball.y - ball.radius * 0.48,
@@ -772,6 +1035,20 @@
     function render() {
       ctx.clearRect(0, 0, w, h);
 
+      const table = getTableRect();
+      const cx = table.x + table.width / 2;
+      const cy = table.y + table.height / 2;
+      const angle = clamp(tiltX, -1.5, 1.5) * 0.15;
+      const scaleY = 1 + clamp(tiltY, -1.5, 1.5) * 0.04;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.scale(1, scaleY);
+      ctx.translate(-cx, -cy);
+
+      drawTable();
+
       for (const dip of dips) {
         drawDip(dip);
       }
@@ -779,6 +1056,7 @@
       for (const ball of balls) {
         drawBall(ball);
       }
+      ctx.restore();
 
       if (fireworks.length > 0) {
         drawFireworks();
@@ -802,9 +1080,25 @@
       }
     }
 
+    function updateKeyboardTilt() {
+      if (motionReady) return;
+
+      const left = !!keys.ArrowLeft || !!keys.KeyA;
+      const right = !!keys.ArrowRight || !!keys.KeyD;
+      const up = !!keys.ArrowUp || !!keys.KeyW;
+      const down = !!keys.ArrowDown || !!keys.KeyS;
+
+      const keyboardX = (right ? 1 : 0) - (left ? 1 : 0);
+      const keyboardY = (down ? 1 : 0) - (up ? 1 : 0);
+
+      keyboardTiltX = clamp(keyboardX, -1, 1);
+      keyboardTiltY = clamp(keyboardY, -1, 1);
+      tiltX = keyboardTiltX;
+      tiltY = keyboardTiltY;
+    }
+
     async function requestMotionPermission() {
-      const hasMotionAPI = typeof DeviceOrientationEvent !== 'undefined';
-      if (!hasMotionAPI) {
+      if (!motionSupported) {
         motionReady = false;
         return false;
       }
@@ -813,6 +1107,7 @@
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
           const response = await DeviceOrientationEvent.requestPermission();
           if (response !== 'granted') {
+            motionReady = false;
             return false;
           }
         }
@@ -821,22 +1116,23 @@
         return true;
       } catch (err) {
         console.warn('Motion permission failed:', err);
+        motionReady = false;
         return false;
       }
     }
 
-    function pointerTilt(event) {
-      if (motionReady) return;
-      const x = (event.clientX / w) * 2 - 1;
-      const y = (event.clientY / h) * 2 - 1;
-      tiltX = clamp(x * 1.2, -1.5, 1.5);
-      tiltY = clamp(y * 1.2, -1.5, 1.5);
-    }
-
     function startGame() {
       ensureAudio();
-      if (!motionReady) {
+      if (motionSupported && !motionReady) {
         requestMotionPermission();
+      } else {
+        motionReady = false;
+      }
+      if (!motionReady) {
+        tiltX = 0;
+        tiltY = 0;
+        keyboardTiltX = 0;
+        keyboardTiltY = 0;
       }
       resetGame();
       running = true;
@@ -845,16 +1141,64 @@
       updateHud();
     }
 
+    function returnToMenu() {
+      running = false;
+      resetGame();
+      fireworks = [];
+      startOverlay.style.display = '';
+      winOverlay.classList.remove('visible');
+    }
+
+    const keys = {};
+
+    window.addEventListener('keydown', (event) => {
+      keys[event.code] = true;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) {
+        event.preventDefault();
+      }
+      if (!motionReady) {
+        updateKeyboardTilt();
+      }
+    });
+
+    window.addEventListener('keyup', (event) => {
+      keys[event.code] = false;
+      if (!motionReady) {
+        updateKeyboardTilt();
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      Object.keys(keys).forEach((key) => {
+        keys[key] = false;
+      });
+      keyboardTiltX = 0;
+      keyboardTiltY = 0;
+      tiltX = 0;
+      tiltY = 0;
+    });
+
     startButton.addEventListener('click', startGame);
+    randomizeButton.addEventListener('click', () => {
+      randomizeSettings();
+      startGame();
+    });
     restartButton.addEventListener('click', startGame);
-    sizeSlider.addEventListener('input', updateSizeLabel);
-    countSlider.addEventListener('input', updateCountLabel);
+    menuButton.addEventListener('click', returnToMenu);
+    sizeSlider.addEventListener('input', () => {
+      updateSizeLabel();
+      renderLeaderboard();
+    });
+    countSlider.addEventListener('input', () => {
+      updateCountLabel();
+      renderLeaderboard();
+    });
     window.addEventListener('resize', resize);
-    window.addEventListener('pointermove', pointerTilt, { passive: true });
 
     resize();
     updateSizeLabel();
     updateCountLabel();
+    renderLeaderboard();
     resetGame();
     requestAnimationFrame(animate);
   </script>

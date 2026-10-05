@@ -1,0 +1,1 @@
+When creating or updating `CHANGELOG.md`, write every change item for players in plain, non-technical language. Describe what players can do, see, or experience; avoid implementation details and developer-focused notes.
