@@ -4,6 +4,14 @@ All notable changes to Gyro Ballz are listed here. This project follows [Keep a 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
+### Added
+
+- Open the leaderboard from the main menu to compare actual times with times including penalties and see each run's penalty count.
+- Enable hit penalties for the outer wall, balls resting in dips, or both. Each hit adds five seconds, at most once per second, and the HUD tracks the count and added time.
+- Return to the main menu during a game with the top-left back button or Escape.
+
 ## [0.1.0] - 2026-10-05
 
 ### Added

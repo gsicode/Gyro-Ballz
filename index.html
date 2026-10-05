@@ -73,7 +73,7 @@
     #hud {
       position: absolute;
       top: max(14px, env(safe-area-inset-top));
-      left: 14px;
+      left: 58px;
       z-index: 4;
       display: inline-flex;
       align-items: center;
@@ -93,6 +93,27 @@
       text-transform: uppercase;
     }
 
+    #quitButton {
+      position: absolute;
+      top: max(14px, env(safe-area-inset-top));
+      left: 14px;
+      z-index: 11;
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    #quitButton[hidden] {
+      display: none;
+    }
+
     .hud-item {
       display: inline-block;
       min-width: 70px;
@@ -101,6 +122,22 @@
 
     .hud-divider {
       opacity: 0.5;
+    }
+
+    @media (max-width: 360px) {
+      #hud {
+        left: 56px;
+        right: 10px;
+        min-width: 0;
+        gap: 4px;
+        padding: 6px 8px;
+        justify-content: space-between;
+        font-size: 11px;
+      }
+
+      .hud-item {
+        min-width: 0;
+      }
     }
 
     .overlay {
@@ -169,6 +206,12 @@
     .value {
       font-weight: 800;
       color: white;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #dfeaf8;
     }
 
     input[type="range"] {
@@ -296,6 +339,17 @@
       transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
 
+    @media (max-width: 420px) {
+      .leaderboard-item {
+        grid-template-columns: 22px minmax(0, 1fr);
+      }
+
+      .leaderboard-time {
+        grid-column: 2;
+        text-align: left;
+      }
+    }
+
     @keyframes recentPulse {
       0% {
         border-color: rgba(125, 211, 252, 0.85);
@@ -331,19 +385,56 @@
     }
 
     .leaderboard-time {
+      display: grid;
+      gap: 2px;
       font-weight: 700;
       color: #dfeaf8;
       font-family: 'Courier New', monospace;
       letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .leaderboard-time-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .leaderboard-time-label {
+      color: var(--subtle);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .penalty-popup {
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+      color: #ffe08a;
+      font-size: 20px;
+      font-weight: 900;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      transform: translate(-50%, -50%);
+      animation: penaltyFloat 0.9s ease-out forwards;
+    }
+
+    @keyframes penaltyFloat {
+      from { opacity: 1; translate: 0 0; }
+      to { opacity: 0; translate: 0 -34px; }
     }
   </style>
 </head>
 <body>
   <div id="game">
+    <button id="quitButton" type="button" aria-label="Quit to main menu" title="Quit to main menu" hidden>&lt;</button>
     <div id="hud">
       <span id="scoreText" class="hud-item">0 / 5</span>
       <span class="hud-divider">|</span>
       <span id="timerText" class="hud-item">0.000s</span>
+      <span class="hud-divider">|</span>
+      <span id="penaltyText" class="hud-item">0 pen +0s</span>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -352,28 +443,52 @@
     <div id="startOverlay" class="overlay">
       <div class="panel">
         <h1>Gyro Ballz</h1>
-        <div class="rows">
-          <div class="setting">
-            <div class="label-row">
-              <span>Difficulty</span>
-              <span id="sizeValue" class="value">Normal</span>
+        <div id="startMenuContent">
+          <div class="rows">
+            <div class="setting">
+              <div class="label-row">
+                <span>Difficulty</span>
+                <span id="sizeValue" class="value">Normal</span>
+              </div>
+              <input id="sizeSlider" type="range" min="0.7" max="1.6" step="0.05" value="1.0" />
             </div>
-            <input id="sizeSlider" type="range" min="0.7" max="1.6" step="0.05" value="1.0" />
+
+            <div class="setting">
+              <div class="label-row">
+                <span>Balls & Dips</span>
+                <span id="countValue" class="value">5</span>
+              </div>
+              <input id="countSlider" type="range" min="5" max="10" step="1" value="5" />
+            </div>
+
+            <div class="setting">
+              <div class="label-row">
+                <label for="penaltiesEnabled">Hit penalties</label>
+                <input id="penaltiesEnabled" type="checkbox" />
+              </div>
+              <label class="label-row" for="penaltyType">Penalize</label>
+              <select id="penaltyType" disabled>
+                <option value="dip">Ball in a dip</option>
+                <option value="wall">Outer wall</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
           </div>
 
-          <div class="setting">
-            <div class="label-row">
-              <span>Balls & Dips</span>
-              <span id="countValue" class="value">5</span>
-            </div>
-            <input id="countSlider" type="range" min="5" max="10" step="1" value="5" />
+          <p class="notice">Any dip works. One ball can only sit in each dip at a time.</p>
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <button id="randomizeButton" type="button">Randomise</button>
+            <button id="startButton">Start game</button>
+            <button id="showLeaderboardButton" type="button">Leaderboard</button>
           </div>
         </div>
 
-        <p class="notice">Any dip works. One ball can only sit in each dip at a time.</p>
-        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-          <button id="randomizeButton" type="button">Randomise</button>
-          <button id="startButton">Start game</button>
+        <div id="menuLeaderboardView" hidden>
+          <h2>Leaderboard</h2>
+          <div class="leaderboard">
+            <ol id="menuLeaderboardList" class="leaderboard-list"></ol>
+          </div>
+          <button id="leaderboardBackButton" type="button">Back</button>
         </div>
       </div>
     </div>
@@ -403,8 +518,10 @@
     const fireworksCanvas = document.getElementById('fireworksCanvas');
     const fireworksCtx = fireworksCanvas.getContext('2d');
     const hud = document.getElementById('hud');
+    const quitButton = document.getElementById('quitButton');
     const scoreText = document.getElementById('scoreText');
     const timerText = document.getElementById('timerText');
+    const penaltyText = document.getElementById('penaltyText');
     const startOverlay = document.getElementById('startOverlay');
     const winOverlay = document.getElementById('winOverlay');
     const startButton = document.getElementById('startButton');
@@ -415,10 +532,18 @@
     const sizeValue = document.getElementById('sizeValue');
     const countSlider = document.getElementById('countSlider');
     const countValue = document.getElementById('countValue');
+    const penaltiesEnabled = document.getElementById('penaltiesEnabled');
+    const penaltyType = document.getElementById('penaltyType');
     const timerDisplay = document.getElementById('timerDisplay');
     const leaderboardList = document.getElementById('leaderboardList');
+    const menuLeaderboardList = document.getElementById('menuLeaderboardList');
+    const startMenuContent = document.getElementById('startMenuContent');
+    const menuLeaderboardView = document.getElementById('menuLeaderboardView');
+    const showLeaderboardButton = document.getElementById('showLeaderboardButton');
+    const leaderboardBackButton = document.getElementById('leaderboardBackButton');
 
     const LEADERBOARD_KEY = 'gyro-ballz-leaderboard-v1';
+    const PENALTY_COOLDOWN_MS = 1000;
 
     let BALL_COUNT = 5;
     let DIP_COUNT = 5;
@@ -442,6 +567,9 @@
     let audioCtx = null;
     let gameStartTime = 0;
     let winTime = 0;
+    let penaltyCount = 0;
+    let penaltyAddedTime = 0;
+    let lastPenaltyAt = -Infinity;
 
     let dips = [];
     let balls = [];
@@ -535,8 +663,14 @@
     function updateHud() {
       const secured = balls.filter(b => b.captured).length;
       scoreText.textContent = secured + ' / ' + BALL_COUNT;
-      const totalSeconds = running || win ? (Date.now() - gameStartTime) / 1000 : 0;
+      const totalSeconds = running || win ? getElapsedTime() : 0;
       timerText.textContent = totalSeconds.toFixed(3) + 's';
+      penaltyText.textContent = `${penaltyCount} pen +${penaltyAddedTime}s`;
+    }
+
+    function getElapsedTime() {
+      const runTime = win ? winTime : (Date.now() - gameStartTime) / 1000;
+      return runTime + penaltyAddedTime;
     }
 
     function getSizeLabel(value = Number(sizeSlider.value)) {
@@ -570,31 +704,40 @@
 
     function renderLeaderboard() {
       const entries = getLeaderboard();
-      leaderboardList.innerHTML = '';
+      for (const list of [leaderboardList, menuLeaderboardList]) {
+        list.innerHTML = '';
 
-      if (!entries.length) {
-        const empty = document.createElement('li');
-        empty.className = 'leaderboard-item';
-        empty.innerHTML = '<span class="leaderboard-rank">-</span><span class="leaderboard-meta"><span>No runs yet</span></span><span class="leaderboard-time">-</span>';
-        leaderboardList.appendChild(empty);
-        return;
+        if (!entries.length) {
+          const empty = document.createElement('li');
+          empty.className = 'leaderboard-item';
+          empty.innerHTML = '<span class="leaderboard-rank">-</span><span class="leaderboard-meta"><span>No runs yet</span></span><span class="leaderboard-time">-</span>';
+          list.appendChild(empty);
+          continue;
+        }
+
+        entries.forEach((entry, index) => {
+          const penalties = entry.penalties ?? 0;
+          const addedTime = entry.addedTime ?? 0;
+          const item = document.createElement('li');
+          const isRecent = !!entry.recent;
+          item.className = 'leaderboard-item' + (isRecent ? ' leaderboard-item--recent' : '');
+          item.innerHTML = `
+            <span class="leaderboard-rank">${index + 1}</span>
+            <span class="leaderboard-meta">
+              <span>${entry.balls} balls</span>
+              <span>•</span>
+              <span>${entry.size}</span>
+              <span>•</span>
+              <span>${penalties} pen (+${addedTime.toFixed(0)}s)</span>
+            </span>
+            <span class="leaderboard-time">
+              <span class="leaderboard-time-line"><span class="leaderboard-time-label">Actual</span><span>${entry.time.toFixed(3)}s</span></span>
+              <span class="leaderboard-time-line"><span class="leaderboard-time-label">With pen</span><span>${(entry.time + addedTime).toFixed(3)}s</span></span>
+            </span>
+          `;
+          list.appendChild(item);
+        });
       }
-
-      entries.forEach((entry, index) => {
-        const item = document.createElement('li');
-        const isRecent = !!entry.recent;
-        item.className = 'leaderboard-item' + (isRecent ? ' leaderboard-item--recent' : '');
-        item.innerHTML = `
-          <span class="leaderboard-rank">${index + 1}</span>
-          <span class="leaderboard-meta">
-            <span>${entry.balls} balls</span>
-            <span>•</span>
-            <span>${entry.size}</span>
-          </span>
-          <span class="leaderboard-time">${entry.time.toFixed(3)}s</span>
-        `;
-        leaderboardList.appendChild(item);
-      });
     }
 
     function createDip(x, y, radius) {
@@ -675,6 +818,9 @@
       balls = generateBalls();
       fireworks = [];
       win = false;
+      penaltyCount = 0;
+      penaltyAddedTime = 0;
+      lastPenaltyAt = -Infinity;
       winOverlay.classList.remove('visible');
       lastTs = 0;
       gameStartTime = Date.now();
@@ -692,6 +838,27 @@
         ball.vx = (Math.random() - 0.5) * 80;
         ball.vy = (Math.random() - 0.5) * 80;
       }
+    }
+
+    function recordPenalty(type, x, y) {
+      if (!running || !penaltiesEnabled.checked) return;
+      if (type === 'dip' && !['dip', 'both'].includes(penaltyType.value)) return;
+      if (type === 'wall' && !['wall', 'both'].includes(penaltyType.value)) return;
+      const now = performance.now();
+      if (now - lastPenaltyAt < PENALTY_COOLDOWN_MS) return;
+      lastPenaltyAt = now;
+
+      penaltyCount++;
+      penaltyAddedTime += 5;
+
+      const popup = document.createElement('div');
+      popup.className = 'penalty-popup';
+      popup.textContent = '+5';
+      popup.style.left = clamp(x, 22, w - 22) + 'px';
+      popup.style.top = clamp(y, 22, h - 22) + 'px';
+      document.getElementById('game').appendChild(popup);
+      window.setTimeout(() => popup.remove(), 900);
+      updateHud();
     }
 
     function spawnFireworks() {
@@ -790,25 +957,33 @@
       ball.x += ball.vx * dt;
       ball.y += ball.vy * dt;
 
+      let wallImpact = null;
       if (ball.x <= left) {
         ball.x = left;
         ball.vx *= -0.7;
         vibrate(12);
+        wallImpact = { x: table.x, y: ball.y };
       }
       if (ball.x >= right) {
         ball.x = right;
         ball.vx *= -0.7;
         vibrate(12);
+        wallImpact = { x: table.right, y: ball.y };
       }
       if (ball.y <= top) {
         ball.y = top;
         ball.vy *= -0.7;
         vibrate(12);
+        wallImpact = { x: ball.x, y: table.y };
       }
       if (ball.y >= bottom) {
         ball.y = bottom;
         ball.vy *= -0.7;
         vibrate(12);
+        wallImpact = { x: ball.x, y: table.bottom };
+      }
+      if (wallImpact) {
+        recordPenalty('wall', wallImpact.x, wallImpact.y);
       }
 
       for (let i = 0; i < balls.length; i++) {
@@ -844,6 +1019,7 @@
           }
 
           if (ball.captured || other.captured) {
+            recordPenalty('dip', (ball.x + other.x) / 2, (ball.y + other.y) / 2);
             releaseBall(ball);
             releaseBall(other);
           } else {
@@ -885,7 +1061,9 @@
           saveLeaderboardEntry({
             time: winTime,
             balls: BALL_COUNT,
-            size: getSizeLabel()
+            size: getSizeLabel(),
+            penalties: penaltyCount,
+            addedTime: penaltyAddedTime
           });
           renderLeaderboard();
           updateHud();
@@ -1137,21 +1315,35 @@
       resetGame();
       running = true;
       startOverlay.style.display = 'none';
+      quitButton.hidden = false;
       winOverlay.classList.remove('visible');
       updateHud();
     }
 
     function returnToMenu() {
       running = false;
+      Object.keys(keys).forEach((key) => {
+        keys[key] = false;
+      });
+      keyboardTiltX = 0;
+      keyboardTiltY = 0;
+      tiltX = 0;
+      tiltY = 0;
       resetGame();
       fireworks = [];
       startOverlay.style.display = '';
+      quitButton.hidden = true;
       winOverlay.classList.remove('visible');
     }
 
     const keys = {};
 
     window.addEventListener('keydown', (event) => {
+      if (event.code === 'Escape' && (running || win)) {
+        event.preventDefault();
+        returnToMenu();
+        return;
+      }
       keys[event.code] = true;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) {
         event.preventDefault();
@@ -1179,6 +1371,19 @@
     });
 
     startButton.addEventListener('click', startGame);
+    quitButton.addEventListener('click', returnToMenu);
+    penaltiesEnabled.addEventListener('change', () => {
+      penaltyType.disabled = !penaltiesEnabled.checked;
+    });
+    showLeaderboardButton.addEventListener('click', () => {
+      startMenuContent.hidden = true;
+      menuLeaderboardView.hidden = false;
+      renderLeaderboard();
+    });
+    leaderboardBackButton.addEventListener('click', () => {
+      menuLeaderboardView.hidden = true;
+      startMenuContent.hidden = false;
+    });
     randomizeButton.addEventListener('click', () => {
       randomizeSettings();
       startGame();
