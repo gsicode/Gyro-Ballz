@@ -946,11 +946,12 @@
         }
       }
 
-      const gx = tiltX * gravity * dt;
-      const gy = tiltY * gravity * dt;
+      const acceleration = motionReady
+        ? getGyroAcceleration(dt)
+        : getDesktopAcceleration(dt);
 
-      ball.vx += gx;
-      ball.vy += gy;
+      ball.vx += acceleration.x;
+      ball.vy += acceleration.y;
       ball.vx *= 0.994;
       ball.vy *= 0.994;
 
@@ -1030,6 +1031,23 @@
 
       ball.glow *= 0.97;
       tryCapture(ball);
+    }
+
+    function getDesktopAcceleration(dt) {
+      return {
+        x: tiltX * gravity * dt,
+        y: tiltY * gravity * dt
+      };
+    }
+
+    function getGyroAcceleration(dt) {
+      const radiansPerDegree = Math.PI / 180;
+      const angleX = tiltX * 28 * radiansPerDegree;
+      const angleY = tiltY * 28 * radiansPerDegree;
+      return {
+        x: Math.sin(angleX) * gravity * dt,
+        y: Math.sin(angleY) * gravity * dt
+      };
     }
 
     function updateFireworks(dt) {
@@ -1216,8 +1234,8 @@
       const table = getTableRect();
       const cx = table.x + table.width / 2;
       const cy = table.y + table.height / 2;
-      const angle = clamp(tiltX, -1.5, 1.5) * 0.15;
-      const scaleY = 1 + clamp(tiltY, -1.5, 1.5) * 0.04;
+      const angle = isMobileDevice ? 0 : clamp(tiltX, -1.5, 1.5) * 0.15;
+      const scaleY = isMobileDevice ? 1 : 1 + clamp(tiltY, -1.5, 1.5) * 0.04;
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -1299,13 +1317,9 @@
       }
     }
 
-    function startGame() {
+    async function startGame() {
       ensureAudio();
-      if (motionSupported && !motionReady) {
-        requestMotionPermission();
-      } else {
-        motionReady = false;
-      }
+      motionReady = motionSupported ? await requestMotionPermission() : false;
       if (!motionReady) {
         tiltX = 0;
         tiltY = 0;

@@ -4,6 +4,10 @@ All notable changes to Gyro Ballz are listed here. This project follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- On phones, the table stays still while the balls respond to your tilt.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added
